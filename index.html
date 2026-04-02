@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>紫微命宫 · 八字推算</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --gold: #c9a84c;
+            --gold-light: #f0d07a;
+            --gold-dim: rgba(201, 168, 76, 0.25);
+            --bg: #07050f;
+            --panel: rgba(12, 7, 22, 0.93);
+            --text: #e8d5a3;
+            --text-dim: rgba(232, 213, 163, 0.6);
+            --wood: #3a8a3f;
+            --fire: #c0392b;
+            --earth: #b8860b;
+            --metal: #8fa3a8;
+            --water: #1a66c0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Noto Serif SC', 'Songti SC', 'SimSun', '宋体', serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        canvas#stars {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 0 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ─── HEADER ─── */
+        header {
+            text-align: center;
+            padding: 56px 20px 36px;
+        }
+
+        .trigrams {
+            font-size: 1.3rem;
+            letter-spacing: 14px;
+            color: rgba(201,168,76,0.35);
+            margin-bottom: 18px;
+            animation: glimmer 5s ease-in-out infinite;
+        }
+
+        @keyframes glimmer {
+            0%,100% { opacity:0.35; } 50% { opacity:0.75; }
+        }
+
+        header h1 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: var(--gold-light);
+            letter-spacing: 10px;
+            text-shadow: 0 0 40px rgba(201,168,76,0.35);
+            margin-bottom: 8px;
+        }
+
+        header .subtitle {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            letter-spacing: 6px;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 28px 0;
+        }
+
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(to right, transparent, var(--gold-dim), transparent);
+        }
+
+        .divider span { color: var(--gold); font-size: 1rem; }
+
+        /* ─── CARD ─── */
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--gold-dim);
+            border-radius: 8px;
+            padding: 36px 40px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(12px);
+        }
+
+        @media(max-width:600px) { .card { padding: 24px 20px; } }
+
+        .card-title {
+            text-align: center;
+            font-size: 1.05rem;
+            color: var(--gold);
+            letter-spacing: 5px;
+            margin-bottom: 28px;
+        }
+
+        /* ─── FORM ─── */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        @media(max-width:560px) { .form-grid { grid-template-columns: 1fr; } }
+
+        .form-group { display: flex; flex-direction: column; gap: 7px; }
+
+        .form-group label {
+            font-size: 0.82rem;
+            color: var(--text-dim);
+            letter-spacing: 2px;
+        }
+
+        .form-group select {
+            background: rgba(201,168,76,0.04);
+            border: 1px solid var(--gold-dim);
+            border-radius: 4px;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.95rem;
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: border-color 0.25s;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23c9a84c' opacity='.5'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 30px;
+        }
+
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+
+        select option { background: #130b22; color: var(--text); }
+
+        .gender-row {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 18px;
+        }
+
+        .gender-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: var(--text-dim);
+            font-size: 0.92rem;
+            transition: color .2s;
+        }
+
+        .gender-option:hover { color: var(--text); }
+        .gender-option input { accent-color: var(--gold); width:15px; height:15px; }
+
+        .btn-calc {
+            display: block;
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(135deg, rgba(201,168,76,0.12), rgba(201,168,76,0.04));
+            border: 1px solid var(--gold);
+            border-radius: 4px;
+            color: var(--gold-light);
+            font-family: inherit;
+            font-size: 1.05rem;
+            letter-spacing: 7px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-calc:hover {
+            background: linear-gradient(135deg, rgba(201,168,76,0.25), rgba(201,168,76,0.08));
+            box-shadow: 0 0 24px rgba(201,168,76,0.18);
+        }
+
+        .err { color: #e05050; text-align:center; font-size:0.85rem; margin-bottom:10px; display:none; }
+
+        /* ─── RESULTS ─── */
+        #results { display: none; animation: fadeUp 0.7s ease; }
+
+        @keyframes fadeUp {
+            from { opacity:0; transform:translateY(18px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+
+        /* ─── PILLARS ─── */
+        .pillars-wrap {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin: 8px 0 4px;
+        }
+
+        .pillar { display: flex; flex-direction: column; align-items: center; gap: 0; }
+
+        .pillar-lbl {
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+
+        .pillar-card {
+            background: linear-gradient(180deg, rgba(201,168,76,0.07) 0%, rgba(201,168,76,0.02) 100%);
+            border: 1px solid var(--gold-dim);
+            border-radius: 6px;
+            width: 86px;
+            padding: 14px 8px 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            position: relative;
+        }
+
+        .pillar-god {
+            font-size: 0.7rem;
+            color: var(--gold);
+            letter-spacing: 1px;
+            min-height: 16px;
+        }
+
+        .pillar-stem, .pillar-branch {
+            font-size: 2.2rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .pillar-sep {
+            width: 36px;
+            height: 1px;
+            background: var(--gold-dim);
+        }
+
+        .pillar-nayin {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            text-align: center;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+
+        .pillar-animal {
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            margin-top: 6px;
+        }
+
+        /* ─── WUXING ─── */
+        .elem-circles {
+            display: flex;
+            justify-content: center;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+
+        .elem-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+        .elem-circle {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            font-weight: 700;
+            border: 2px solid;
+            position: relative;
+        }
+
+        .elem-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            font-size: 0.6rem;
+            padding: 1px 4px;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+
+        .elem-count { font-size: 0.78rem; color: var(--text-dim); }
+
+        .bars { margin-top: 4px; }
+
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 9px;
+        }
+
+        .bar-label { width: 20px; text-align: center; font-size: 0.85rem; }
+
+        .bar-track {
+            flex: 1;
+            height: 7px;
+            background: rgba(255,255,255,0.07);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1s ease;
+        }
+
+        .bar-num { width: 24px; text-align: right; font-size: 0.75rem; color: var(--text-dim); }
+
+        /* ─── SECTIONS ─── */
+        .sec-title {
+            font-size: 0.92rem;
+            color: var(--gold);
+            letter-spacing: 4px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sec-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--gold-dim);
+        }
+
+        .sec-text {
+            font-size: 0.9rem;
+            line-height: 1.95;
+            color: var(--text-dim);
+            margin-bottom: 20px;
+        }
+
+        .sec-text strong { color: var(--text); }
+
+        .fortune-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 13px;
+            margin-top: 14px;
+        }
+
+        @media(max-width:560px) { .fortune-grid { grid-template-columns: 1fr; } }
+
+        .fortune-box {
+            background: rgba(201,168,76,0.03);
+            border: 1px solid rgba(201,168,76,0.14);
+            border-radius: 6px;
+            padding: 14px;
+        }
+
+        .fortune-box-title {
+            font-size: 0.8rem;
+            color: var(--gold);
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+
+        .fortune-box-text {
+            font-size: 0.83rem;
+            line-height: 1.85;
+            color: var(--text-dim);
+        }
+
+        .lucky-row {
+            margin-top: 18px;
+            padding: 14px 18px;
+            border: 1px solid rgba(201,168,76,0.18);
+            border-radius: 6px;
+            background: rgba(201,168,76,0.04);
+            font-size: 0.85rem;
+            line-height: 2;
+            color: var(--text-dim);
+        }
+
+        .lucky-row strong { color: var(--gold); }
+
+        /* ─── DAYUN ─── */
+        .dayun-scroll {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+
+        .dayun-scroll::-webkit-scrollbar { height: 4px; }
+        .dayun-scroll::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 2px; }
+
+        .dayun-box {
+            min-width: 76px;
+            text-align: center;
+            border: 1px solid var(--gold-dim);
+            border-radius: 5px;
+            padding: 10px 6px;
+            background: rgba(201,168,76,0.03);
+            flex-shrink: 0;
+        }
+
+        .dayun-age { font-size: 0.7rem; color: var(--text-dim); margin-bottom: 6px; }
+
+        .dayun-chars {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+            font-size: 1.35rem;
+            font-weight: 700;
+        }
+
+        /* ─── TENGOD TABLE ─── */
+        .tg-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+            margin-top: 12px;
+        }
+
+        .tg-table th, .tg-table td {
+            padding: 7px 10px;
+            text-align: center;
+            border: 1px solid rgba(201,168,76,0.12);
+        }
+
+        .tg-table th {
+            color: var(--gold);
+            font-weight: normal;
+            letter-spacing: 2px;
+            background: rgba(201,168,76,0.06);
+        }
+
+        .tg-table td { color: var(--text-dim); }
+
+        footer {
+            text-align: center;
+            padding: 36px 20px;
+            color: rgba(232,213,163,0.3);
+            font-size: 0.78rem;
+            letter-spacing: 2px;
+        }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 3px; }
+    </style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+
+<div class="container">
+    <header>
+        <div class="trigrams">☰ ☱ ☲ ☳ ☴ ☵ ☶ ☷</div>
+        <h1>紫微命宫</h1>
+        <p class="subtitle">八字推算 · 洞悉天机</p>
+        <div class="divider"><span>✦</span></div>
+    </header>
+
+    <div class="card">
+        <div class="card-title">[ 输入生辰 ]</div>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>出生年份</label>
+                <select id="sYear"></select>
+            </div>
+            <div class="form-group">
+                <label>出生月份</label>
+                <select id="sMonth">
+                    <option value="1">一月</option><option value="2">二月</option>
+                    <option value="3">三月</option><option value="4">四月</option>
+                    <option value="5">五月</option><option value="6">六月</option>
+                    <option value="7">七月</option><option value="8">八月</option>
+                    <option value="9">九月</option><option value="10">十月</option>
+                    <option value="11">十一月</option><option value="12">十二月</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>出生日期</label>
+                <select id="sDay"></select>
+            </div>
+            <div class="form-group">
+                <label>出生时辰</label>
+                <select id="sHour">
+                    <option value="0">子时 (23:00–01:00)</option>
+                    <option value="1">丑时 (01:00–03:00)</option>
+                    <option value="2">寅时 (03:00–05:00)</option>
+                    <option value="3">卯时 (05:00–07:00)</option>
+                    <option value="4">辰时 (07:00–09:00)</option>
+                    <option value="5">巳时 (09:00–11:00)</option>
+                    <option value="6">午时 (11:00–13:00)</option>
+                    <option value="7">未时 (13:00–15:00)</option>
+                    <option value="8">申时 (15:00–17:00)</option>
+                    <option value="9">酉时 (17:00–19:00)</option>
+                    <option value="10">戌时 (19:00–21:00)</option>
+                    <option value="11">亥时 (21:00–23:00)</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group" style="margin-bottom:18px;">
+            <label>性别</label>
+            <div class="gender-row">
+                <label class="gender-option"><input type="radio" name="gender" value="male" checked><span>男命</span></label>
+                <label class="gender-option"><input type="radio" name="gender" value="female"><span>女命</span></label>
+            </div>
+        </div>
+        <div class="err" id="errMsg"></div>
+        <button class="btn-calc" onclick="doCalc()">推 算 命 局</button>
+    </div>
+
+    <div id="results">
+        <div class="card">
+            <div class="card-title">[ 四柱八字 ]</div>
+            <div class="pillars-wrap" id="pillarsWrap"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">[ 五行分布 ]</div>
+            <div id="wuxingWrap"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">[ 十神格局 ]</div>
+            <div id="tengodWrap"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">[ 命局解析 ]</div>
+            <div id="analysisWrap"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">[ 大运流年 ]</div>
+            <div id="dayunWrap"></div>
+        </div>
+    </div>
+
+    <footer>命理仅供参考，人生在于自身修行 &nbsp;·&nbsp; 紫微命宫</footer>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════════════
+const STEMS   = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+const BRANCHES= ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+const ELEMS   = ['木','火','土','金','水'];
+const ANIMALS = ['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
+
+const ELEM_COLOR = ['#3a8a3f','#c0392b','#b8860b','#8fa3a8','#1a66c0'];
+const ELEM_BG    = ['rgba(58,138,63,0.13)','rgba(192,57,43,0.13)','rgba(184,134,11,0.13)','rgba(143,163,168,0.13)','rgba(26,102,192,0.13)'];
+
+// 天干五行: 甲乙=木, 丙丁=火, 戊己=土, 庚辛=金, 壬癸=水
+const STEM_E  = [0,0,1,1,2,2,3,3,4,4];
+// 地支五行 (主气)
+const BRAN_E  = [4,2,0,0,2,1,1,2,3,3,2,4];
+
+const NAYIN = [
+    '海中金','海中金','炉中火','炉中火','大林木','大林木',
+    '路旁土','路旁土','剑锋金','剑锋金','山头火','山头火',
+    '涧下水','涧下水','城头土','城头土','白蜡金','白蜡金',
+    '杨柳木','杨柳木','泉中水','泉中水','屋上土','屋上土',
+    '霹雳火','霹雳火','松柏木','松柏木','长流水','长流水',
+    '砂中金','砂中金','山下火','山下火','平地木','平地木',
+    '壁上土','壁上土','金箔金','金箔金','覆灯火','覆灯火',
+    '天河水','天河水','大驿土','大驿土','钗钏金','钗钏金',
+    '桑柘木','桑柘木','大溪水','大溪水','沙中土','沙中土',
+    '天上火','天上火','石榴木','石榴木','大海水','大海水',
+];
+
+const STEM_TRAITS = [
+    { name:'甲木·栋梁',  desc:'如参天大树，刚直不阿，进取心强，富有领导才能，重情重义，有担当。', str:'领导力、正直、创业精神', wk:'固执、不善变通' },
+    { name:'乙木·蔓草',  desc:'如藤蔓花草，柔中带韧，善于适应环境，人缘出众，有艺术天赋，处事灵活。', str:'人际关系、艺术感、适应力', wk:'依赖性强、优柔寡断' },
+    { name:'丙火·骄阳',  desc:'如骄阳当空，热情开朗，感召力强，慷慨大方，乐观进取，光明磊落。', str:'热情、感召力、领袖气质', wk:'冲动、粗心大意' },
+    { name:'丁火·烛焰',  desc:'如灯烛之光，温柔细腻，内心丰富，重感情，智慧出众，善于思考。', str:'智慧、细腻、忠诚', wk:'情绪化、多思多虑' },
+    { name:'戊土·高山',  desc:'如高山厚土，稳重踏实，可靠诚信，包容心强，胸怀宽广，值得信赖。', str:'可靠性、稳重、包容', wk:'固执保守、行动迟缓' },
+    { name:'己土·田园',  desc:'如田园之土，谦和细致，实际务实，善于协调，处事周到，有耐心。', str:'协调能力、耐心、务实', wk:'过于谨慎、缺乏魄力' },
+    { name:'庚金·利剑',  desc:'如钢刀利剑，果断刚毅，有正义感，行事雷厉风行，不畏困难，敢于担当。', str:'决断力、正义感、执行力', wk:'过于强硬、缺乏圆滑' },
+    { name:'辛金·珠宝',  desc:'如珠宝宝石，精致聪颖，审美品味高，外表温和内心坚定，善于分析。', str:'精明、审美、分析力', wk:'挑剔、情绪敏感' },
+    { name:'壬水·江河',  desc:'如江河之水，聪明智慧，思维活跃，适应力强，胸怀大志，善于谋划。', str:'智慧、谋略、适应力', wk:'主见不定、投机心重' },
+    { name:'癸水·甘露',  desc:'如春雨甘露，细腻敏感，洞察力强，善解人意，直觉敏锐，有神秘气质。', str:'洞察力、细心、直觉', wk:'多愁善感、过度谨慎' },
+];
+
+// ═══════════════════════════════════════════════
+//  CORE CALCULATIONS
+// ═══════════════════════════════════════════════
+
+function dateToJDN(y, m, d) {
+    // Use Unix epoch offset (verified: 1970-01-01 = JDN 2440588)
+    const ms = Date.UTC(y, m - 1, d, 12, 0, 0);
+    return Math.floor(ms / 86400000) + 2440588;
+}
+
+function cycle60(stem, branch) {
+    let i = stem, c = 0;
+    while (i % 12 !== branch) { i += 10; if (++c > 7) break; }
+    return i % 60;
+}
+
+// 年柱 (立春 ~Feb 4 换年)
+function yearPillar(y, m, d) {
+    let yr = (m < 2 || (m === 2 && d < 4)) ? y - 1 : y;
+    return {
+        stem:   ((yr - 4) % 10 + 10) % 10,
+        branch: ((yr - 4) % 12 + 12) % 12,
+    };
+}
+
+// 月柱 (节气近似日期)
+function monthBranch(m, d) {
+    // [月份, 节气日, 月支index]
+    const T = [[1,6,1],[2,4,2],[3,6,3],[4,5,4],[5,6,5],[6,6,6],
+               [7,7,7],[8,7,8],[9,8,9],[10,8,10],[11,7,11],[12,7,0]];
+    let b = 0;
+    for (const [tm, td, tb] of T) {
+        if (m > tm || (m === tm && d >= td)) b = tb;
+    }
+    return b;
+}
+
+function monthPillar(yStem, m, d) {
+    const b = monthBranch(m, d);
+    const grp = yStem % 5;
+    const starts = [2, 4, 6, 8, 0]; // 丙戊庚壬甲
+    const offset = (b - 2 + 12) % 12;
+    return { stem: (starts[grp] + offset) % 10, branch: b };
+}
+
+// 日柱 (JDN基准, 已验证 2000-01-01 = 庚辰)
+function dayPillar(y, m, d) {
+    const jdn = dateToJDN(y, m, d);
+    return { stem: (jdn + 1) % 10, branch: (jdn + 11) % 12 };
+}
+
+// 时柱
+function hourPillar(dayStem, hBranch) {
+    const starts = [0, 2, 4, 6, 8]; // 甲丙戊庚壬
+    return { stem: (starts[dayStem % 5] + hBranch) % 10, branch: hBranch };
+}
+
+// 十神
+function tenGod(dayStem, tgtStem) {
+    if (tgtStem < 0) return '—';
+    const de = Math.floor(dayStem / 2);
+    const te = Math.floor(tgtStem / 2);
+    const sameYY = (dayStem % 2) === (tgtStem % 2);
+    if (de === te) return sameYY ? '比肩' : '劫财';
+    const gen = [1,2,3,4,0];
+    const ctl = [2,3,4,0,1];
+    const genBy = [4,0,1,2,3];
+    const ctlBy = [3,4,0,1,2];
+    if (gen[de] === te) return sameYY ? '食神' : '伤官';
+    if (ctl[de] === te) return sameYY ? '偏财' : '正财';
+    if (ctlBy[de] === te) return sameYY ? '七杀' : '正官';
+    if (genBy[de] === te) return sameYY ? '偏印' : '正印';
+    return '—';
+}
+
+function wuXingCount(pillars) {
+    const c = [0,0,0,0,0];
+    for (const p of pillars) { c[STEM_E[p.stem]]++; c[BRAN_E[p.branch]]++; }
+    return c;
+}
+
+// ═══════════════════════════════════════════════
+//  DAYUN
+// ═══════════════════════════════════════════════
+function calcDayun(bDate, yStem, mPillar, gender) {
+    const isYang  = yStem % 2 === 0;
+    const isMale  = gender === 'male';
+    const forward = (isMale && isYang) || (!isMale && !isYang);
+
+    // 节气近似日期 (小寒~大雪, 索引0=小寒对应1月)
+    const termMonths = [1,2,3,4,5,6,7,8,9,10,11,12];
+    const termDays   = [6,4,6,5,6,6,7,7,8,8,7,7];
+    // 月支 → 节气索引 (寅月=立春=idx1, ...)
+    const branchToTerm = [11,0,1,2,3,4,5,6,7,8,9,10];
+    const curTermIdx = branchToTerm[mPillar.branch];
+
+    const bYear = bDate.getFullYear();
+    const bMon  = bDate.getMonth() + 1;
+    const bDay  = bDate.getDate();
+
+    let targetDate;
+    if (forward) {
+        let tIdx = (curTermIdx + 1) % 12;
+        let tYear = bYear;
+        if (termMonths[tIdx] < bMon || (termMonths[tIdx] === bMon && termDays[tIdx] <= bDay)) tYear++;
+        targetDate = new Date(tYear, termMonths[tIdx] - 1, termDays[tIdx]);
+    } else {
+        let tIdx = (curTermIdx - 1 + 12) % 12;
+        let tYear = bYear;
+        if (termMonths[tIdx] > bMon || (termMonths[tIdx] === bMon && termDays[tIdx] >= bDay)) tYear--;
+        targetDate = new Date(tYear, termMonths[tIdx] - 1, termDays[tIdx]);
+    }
+
+    const diffDays = Math.abs(Math.round((targetDate - bDate) / 86400000));
+    const startAge = Math.floor(diffDays / 3);
+    const remMonths = Math.floor((diffDays % 3) * 4);
+
+    const dayuns = [];
+    for (let i = 0; i < 8; i++) {
+        const stem   = forward ? (mPillar.stem   + i + 1 + 100) % 10 : ((mPillar.stem   - i - 1 + 100) % 10);
+        const branch = forward ? (mPillar.branch + i + 1 + 120) % 12 : ((mPillar.branch - i - 1 + 120) % 12);
+        dayuns.push({ stem, branch, age: startAge + i * 10 });
+    }
+    return { startAge, remMonths, dayuns };
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════
+function renderPillars(yP, mP, dP, hP) {
+    const pillars = [
+        { ...yP, lbl:'年　柱', god: tenGod(dP.stem, yP.stem) },
+        { ...mP, lbl:'月　柱', god: tenGod(dP.stem, mP.stem) },
+        { ...dP, lbl:'日　柱', god:'日主' },
+        { ...hP, lbl:'时　柱', god: tenGod(dP.stem, hP.stem) },
+    ];
+
+    document.getElementById('pillarsWrap').innerHTML = pillars.map(p => {
+        const sc = ELEM_COLOR[STEM_E[p.stem]];
+        const bc = ELEM_COLOR[BRAN_E[p.branch]];
+        const ny = NAYIN[Math.floor(cycle60(p.stem, p.branch) / 2)];
+        return `
+        <div class="pillar">
+            <div class="pillar-lbl">${p.lbl}</div>
+            <div class="pillar-card">
+                <div class="pillar-god">${p.god}</div>
+                <div class="pillar-stem" style="color:${sc};text-shadow:0 0 12px ${sc}88">${STEMS[p.stem]}</div>
+                <div class="pillar-sep"></div>
+                <div class="pillar-branch" style="color:${bc};text-shadow:0 0 12px ${bc}88">${BRANCHES[p.branch]}</div>
+                <div class="pillar-nayin">${ny}</div>
+            </div>
+            <div class="pillar-animal">${ANIMALS[p.branch]}</div>
+        </div>`;
+    }).join('');
+}
+
+function renderWuXing(counts) {
+    const total = counts.reduce((a,b)=>a+b,0);
+    const badges = ['','旺','旺','旺旺','旺旺'];
+    const badgeColors = ['','#3a8a3f','#8a6000','#8b1a1a'];
+
+    let html = '<div class="elem-circles">';
+    for (let i = 0; i < 5; i++) {
+        const c = counts[i];
+        const badge = c >= 3 ? '旺' : c === 0 ? '缺' : '';
+        const badgeColor = c >= 3 ? ELEM_COLOR[i] : c === 0 ? '#888' : '';
+        html += `
+        <div class="elem-item">
+            <div class="elem-circle" style="color:${ELEM_COLOR[i]};border-color:${ELEM_COLOR[i]};background:${ELEM_BG[i]}">
+                ${ELEMS[i]}
+                ${badge ? `<span class="elem-badge" style="background:${badgeColor};color:#fff">${badge}</span>` : ''}
+            </div>
+            <div class="elem-count">${c} 位</div>
+        </div>`;
+    }
+    html += '</div><div class="bars">';
+    for (let i = 0; i < 5; i++) {
+        const pct = total > 0 ? (counts[i]/total*100) : 0;
+        html += `
+        <div class="bar-row">
+            <div class="bar-label" style="color:${ELEM_COLOR[i]}">${ELEMS[i]}</div>
+            <div class="bar-track">
+                <div class="bar-fill" style="width:${pct}%;background:${ELEM_COLOR[i]}"></div>
+            </div>
+            <div class="bar-num">${counts[i]}</div>
+        </div>`;
+    }
+    html += '</div>';
+    document.getElementById('wuxingWrap').innerHTML = html;
+}
+
+function renderTenGods(yP, mP, dP, hP) {
+    const rows = [
+        { lbl:'年柱', stem: yP.stem, branch: yP.branch, stemGod: tenGod(dP.stem, yP.stem), branchGod: tenGodBranch(dP.stem, yP.branch) },
+        { lbl:'月柱', stem: mP.stem, branch: mP.branch, stemGod: tenGod(dP.stem, mP.stem), branchGod: tenGodBranch(dP.stem, mP.branch) },
+        { lbl:'日柱', stem: dP.stem, branch: dP.branch, stemGod: '日主', branchGod: tenGodBranch(dP.stem, dP.branch) },
+        { lbl:'时柱', stem: hP.stem, branch: hP.branch, stemGod: tenGod(dP.stem, hP.stem), branchGod: tenGodBranch(dP.stem, hP.branch) },
+    ];
+    let html = `<table class="tg-table">
+        <tr><th>柱</th><th>天干</th><th>十神</th><th>地支</th><th>藏干(主)</th><th>十神</th></tr>`;
+    for (const r of rows) {
+        const sc = ELEM_COLOR[STEM_E[r.stem]];
+        const bc = ELEM_COLOR[BRAN_E[r.branch]];
+        // 地支藏干(主气)
+        const hiddenStem = BRANCH_HIDDEN[r.branch][0];
+        html += `
+        <tr>
+            <td style="color:var(--gold)">${r.lbl}</td>
+            <td style="color:${sc};font-size:1.1rem;font-weight:700">${STEMS[r.stem]}</td>
+            <td>${r.stemGod}</td>
+            <td style="color:${bc};font-size:1.1rem;font-weight:700">${BRANCHES[r.branch]}</td>
+            <td style="color:${ELEM_COLOR[STEM_E[hiddenStem]]}">${STEMS[hiddenStem]}</td>
+            <td>${r.branchGod}</td>
+        </tr>`;
+    }
+    html += '</table>';
+    document.getElementById('tengodWrap').innerHTML = html;
+}
+
+// 地支藏干 (主气为首)
+const BRANCH_HIDDEN = [
+    [9],       // 子: 癸
+    [5,9,7],   // 丑: 己癸辛
+    [0,3,2],   // 寅: 甲丙戊
+    [1],       // 卯: 乙
+    [4,1,9],   // 辰: 戊乙癸
+    [3,5,7],   // 巳: 丙己庚
+    [2,3,5],   // 午: 丁己(庚)
+    [5,1,3],   // 未: 己乙丁
+    [6,8,4],   // 申: 庚壬戊
+    [7],       // 酉: 辛
+    [4,7,3],   // 戌: 戊辛丁
+    [8,0],     // 亥: 壬甲
+];
+
+function tenGodBranch(dayStem, branch) {
+    const hidden = BRANCH_HIDDEN[branch][0];
+    return tenGod(dayStem, hidden);
+}
+
+function renderAnalysis(dP, counts, yP, mP, hP) {
+    const ds = dP.stem;
+    const t = STEM_TRAITS[ds];
+    const de = STEM_E[ds];
+    const gen  = [1,2,3,4,0];
+    const genBy= [4,0,1,2,3];
+    const ctl  = [2,3,4,0,1];
+
+    // 日主强弱判断 (简化: 同类元素数量)
+    const selfCount = counts[de];
+    const strong = selfCount >= 3;
+    const luckyE = strong ? gen[de] : genBy[de]; // 泄秀 or 生扶
+
+    const DIR  = ['东','南','中','西','北'];
+    const COL  = ['青绿','红','黄','白','黑蓝'];
+    const NUM  = ['3·8','2·7','5·10','4·9','1·6'];
+    const CAREER= [
+        '木日主适合教育、文化、出版、医疗、创业等领域，思路清晰，宜把握机遇主动出击。',
+        '火日主适合管理、传媒、演艺、餐饮、能源等领域，热情为事业注入活力，需持之以恒。',
+        '土日主适合地产、金融、餐饮、农业等领域，厚积薄发，脚踏实地可成大器，忌好高骛远。',
+        '金日主适合法律、工程、金融、军警等领域，执行力强是优势，磨砺沟通技巧可事半功倍。',
+        '水日主适合贸易、科技、策划、哲学等领域，智慧是最大财富，广学博取，善用资源。',
+    ];
+    const LOVE = [
+        '木日主重情重义，认定便持之以恒，宜寻相互欣赏的伴侣，尊重为感情长久之道。',
+        '火日主感情热烈，生活丰富多彩，需冷静处理矛盾，激情过后注重细水长流。',
+        '土日主忠诚踏实，感情进展较慢，但一旦稳定便可白头偕老，是可靠的伴侣。',
+        '金日主外刚内柔，对伴侣要求较高，放下完美主义多些包容，感情更顺畅。',
+        '水日主善解人意，感情细腻，需避免过度敏感，以信任为基础可收获长久幸福。',
+    ];
+    const WEALTH = [
+        '木日主财运稳中有升，宜以专业知识积累财富，不宜投机冒险，稳健理财为上策。',
+        '火日主偏财运较好，可能有意外之财，但财来财去，宜存留积累，避免铺张浪费。',
+        '土日主正财运佳，踏实努力可积累财富，房产类投资有缘，切忌急于求成。',
+        '金日主具备较强财务管理能力，善于理财投资，防止因强硬导致合作破裂的损失。',
+        '水日主思维灵活善抓商机，贸易流通类生意有优势，注意决策果断，勿错失良机。',
+    ];
+    const HEALTH = [
+        '木日主对应肝胆，宜保持情绪舒畅，多接触自然，避免长期积压，春季尤需养肝。',
+        '火日主对应心脏循环，保持心情愉悦，规律作息，避免过激，夏季注意防暑养心。',
+        '土日主对应脾胃，规律饮食，少食辛辣，保持情绪平稳，避免过度思虑伤脾。',
+        '金日主对应肺部，注意呼吸道健康，保持空气流通，秋冬季节加强保暖养肺。',
+        '水日主对应肾脏，注意保暖防寒，保证充足睡眠，冬季养肾，避免过度劳累。',
+    ];
+
+    const html = `
+        <div class="sec-title">日主 · ${t.name}</div>
+        <p class="sec-text">
+            ${t.desc}<br><br>
+            <strong>性格优势：</strong>${t.str}<br>
+            <strong>性格弱点：</strong>${t.wk}<br>
+            <strong>日主强弱：</strong>${strong ? '偏强，宜泄秀耗散' : '偏弱，宜生扶助力'}
+        </p>
+
+        <div class="sec-title">命局运势</div>
+        <div class="fortune-grid">
+            <div class="fortune-box">
+                <div class="fortune-box-title">◈ 事业方向</div>
+                <div class="fortune-box-text">${CAREER[de]}</div>
+            </div>
+            <div class="fortune-box">
+                <div class="fortune-box-title">◈ 感情婚姻</div>
+                <div class="fortune-box-text">${LOVE[de]}</div>
+            </div>
+            <div class="fortune-box">
+                <div class="fortune-box-title">◈ 钱财积累</div>
+                <div class="fortune-box-text">${WEALTH[de]}</div>
+            </div>
+            <div class="fortune-box">
+                <div class="fortune-box-title">◈ 健康平安</div>
+                <div class="fortune-box-text">${HEALTH[de]}</div>
+            </div>
+        </div>
+
+        <div class="lucky-row">
+            <strong>喜用神：</strong>${ELEMS[luckyE]} &nbsp;|&nbsp;
+            <strong>幸运方位：</strong>${DIR[luckyE]}方 &nbsp;|&nbsp;
+            <strong>幸运颜色：</strong>${COL[luckyE]} &nbsp;|&nbsp;
+            <strong>幸运数字：</strong>${NUM[luckyE]}
+        </div>
+    `;
+    document.getElementById('analysisWrap').innerHTML = html;
+}
+
+function renderDayun(bDate, yP, mP, gender) {
+    const { startAge, remMonths, dayuns } = calcDayun(bDate, yP.stem, mP, gender);
+    let html = `
+        <p class="sec-text" style="margin-bottom:16px;">
+            起运年龄：<strong style="color:var(--gold-light)">${startAge}岁${remMonths>0?remMonths+'个月':''}</strong>
+            &nbsp;·&nbsp; 每柱大运行运10年，逢大运年须留意人生转折。
+        </p>
+        <div class="dayun-scroll">
+    `;
+    for (const d of dayuns) {
+        const sc = ELEM_COLOR[STEM_E[d.stem]];
+        const bc = ELEM_COLOR[BRAN_E[d.branch]];
+        html += `
+        <div class="dayun-box">
+            <div class="dayun-age">${d.age}岁</div>
+            <div class="dayun-chars">
+                <span style="color:${sc}">${STEMS[d.stem]}</span>
+                <span style="color:${bc}">${BRANCHES[d.branch]}</span>
+            </div>
+        </div>`;
+    }
+    html += '</div>';
+    document.getElementById('dayunWrap').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════
+//  MAIN
+// ═══════════════════════════════════════════════
+function doCalc() {
+    const y  = +document.getElementById('sYear').value;
+    const m  = +document.getElementById('sMonth').value;
+    const d  = +document.getElementById('sDay').value;
+    const hb = +document.getElementById('sHour').value;
+    const gender = document.querySelector('input[name="gender"]:checked').value;
+
+    const maxD = new Date(y, m, 0).getDate();
+    const errEl = document.getElementById('errMsg');
+    if (d > maxD) { errEl.style.display='block'; errEl.textContent='日期无效，请重新选择'; return; }
+    errEl.style.display = 'none';
+
+    const yP = yearPillar(y, m, d);
+    const mP = monthPillar(yP.stem, m, d);
+    const dP = dayPillar(y, m, d);
+    const hP = hourPillar(dP.stem, hb);
+
+    const counts = wuXingCount([yP, mP, dP, hP]);
+
+    renderPillars(yP, mP, dP, hP);
+    renderWuXing(counts);
+    renderTenGods(yP, mP, dP, hP);
+    renderAnalysis(dP, counts, yP, mP, hP);
+    renderDayun(new Date(y, m-1, d), yP, mP, gender);
+
+    const res = document.getElementById('results');
+    res.style.display = 'block';
+    setTimeout(() => res.scrollIntoView({ behavior:'smooth', block:'start' }), 80);
+}
+
+// ═══════════════════════════════════════════════
+//  FORM INIT
+// ═══════════════════════════════════════════════
+function initForm() {
+    const ySel = document.getElementById('sYear');
+    for (let y = 2010; y >= 1920; y--) {
+        const o = document.createElement('option');
+        o.value = y; o.textContent = y + '年';
+        if (y === 1990) o.selected = true;
+        ySel.appendChild(o);
+    }
+    updateDays();
+    document.getElementById('sMonth').addEventListener('change', updateDays);
+    document.getElementById('sYear').addEventListener('change', updateDays);
+}
+
+function updateDays() {
+    const y = +document.getElementById('sYear').value;
+    const m = +document.getElementById('sMonth').value;
+    const max = new Date(y, m, 0).getDate();
+    const sel = document.getElementById('sDay');
+    const cur = +sel.value || 1;
+    sel.innerHTML = '';
+    for (let d = 1; d <= max; d++) {
+        const o = document.createElement('option');
+        o.value = d; o.textContent = d + '日';
+        if (d === Math.min(cur, max)) o.selected = true;
+        sel.appendChild(o);
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  STARS ANIMATION
+// ═══════════════════════════════════════════════
+function initStars() {
+    const cv = document.getElementById('stars');
+    const cx = cv.getContext('2d');
+    const resize = () => { cv.width = innerWidth; cv.height = innerHeight; };
+    resize();
+    window.addEventListener('resize', resize);
+    const stars = Array.from({length:130}, () => ({
+        x: Math.random() * innerWidth,
+        y: Math.random() * innerHeight,
+        r: Math.random() * 1.1 + 0.2,
+        phase: Math.random() * Math.PI * 2,
+        speed: Math.random() * 0.004 + 0.002,
+    }));
+    let t = 0;
+    function draw() {
+        cx.clearRect(0, 0, cv.width, cv.height);
+        t += 0.016;
+        for (const s of stars) {
+            const a = 0.25 + 0.55 * Math.sin(t * s.speed * 60 + s.phase);
+            cx.beginPath();
+            cx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+            cx.fillStyle = `rgba(201,168,76,${a})`;
+            cx.fill();
+        }
+        requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
+}
+
+initForm();
+initStars();
+</script>
+</body>
+</html>
