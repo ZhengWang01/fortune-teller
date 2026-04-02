@@ -466,6 +466,88 @@
 
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 3px; }
+
+        /* ─── DETAIL SECTION ─── */
+        .detail-block {
+            margin-bottom: 26px;
+        }
+
+        .detail-tag {
+            display: inline-block;
+            padding: 2px 10px;
+            border: 1px solid var(--gold);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--gold);
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        .gejv-box {
+            background: linear-gradient(135deg, rgba(201,168,76,0.08), rgba(201,168,76,0.02));
+            border: 1px solid rgba(201,168,76,0.3);
+            border-radius: 8px;
+            padding: 20px 22px;
+            margin-bottom: 16px;
+        }
+
+        .gejv-name {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--gold-light);
+            letter-spacing: 4px;
+            margin-bottom: 8px;
+        }
+
+        .gejv-desc {
+            font-size: 0.88rem;
+            line-height: 1.95;
+            color: var(--text-dim);
+        }
+
+        .tengod-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .tg-chip {
+            padding: 5px 13px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            border: 1px solid;
+            letter-spacing: 1px;
+        }
+
+        .elem-analysis-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        @media(max-width:560px) { .elem-analysis-grid { grid-template-columns: 1fr; } }
+
+        .elem-analysis-item {
+            padding: 12px 14px;
+            border-radius: 6px;
+            border: 1px solid;
+            font-size: 0.83rem;
+            line-height: 1.8;
+        }
+
+        .overall-box {
+            background: rgba(201,168,76,0.04);
+            border-left: 3px solid var(--gold);
+            padding: 16px 20px;
+            border-radius: 0 6px 6px 0;
+            font-size: 0.88rem;
+            line-height: 2;
+            color: var(--text-dim);
+        }
+
+        .overall-box strong { color: var(--gold-light); }
     </style>
 </head>
 <body>
@@ -549,6 +631,11 @@
         <div class="card">
             <div class="card-title">[ 命局解析 ]</div>
             <div id="analysisWrap"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">[ 命盘详解 ]</div>
+            <div id="detailWrap"></div>
         </div>
 
         <div class="card">
@@ -953,6 +1040,229 @@ function renderDayun(bDate, yP, mP, gender) {
 }
 
 // ═══════════════════════════════════════════════
+//  DETAIL ANALYSIS
+// ═══════════════════════════════════════════════
+const GEJV_INFO = {
+    '正官格': {
+        desc: '月令正官当权，命格端正，法度严明。此格局者，行事规矩，重视名誉，有公职、管理之才。命局若无冲官、混官，可入庙堂，担纲要职。正官代表权威与秩序，一生较重名分、地位，注重自身形象与社会评价。',
+        tips: '忌见伤官混杂，喜财星生官、印星护身。宜从事政务、法律、管理、教育等稳定行业。'
+    },
+    '七杀格': {
+        desc: '月令七杀当令，英雄格局，刚猛有力。此格局者，胆识过人，魄力十足，敢闯敢拼，是创业者与领军人物的命格。七杀若得制化（食神制杀、印星化杀），可成大器；若无制则性情偏激，宜锤炼心志。',
+        tips: '喜食神、印绶制化七杀。宜创业、军警、工程、体育等挑战性强的领域。'
+    },
+    '食神格': {
+        desc: '月令食神秀气流行，为人温和聪颖，生活品质高，有享福之命。此格局者，才华横溢，口才佳，善于表达，热爱美食、艺术与生活。食神生财，财运自然流入，一生衣食无忧，晚年尤享清福。',
+        tips: '忌枭神（偏印）夺食。宜从事餐饮、艺术、教育、文化、媒体等领域。'
+    },
+    '伤官格': {
+        desc: '月令伤官显旺，才华卓绝，个性鲜明。此格局者，聪明绝顶，创意无限，对传统规则有独到见解甚至不满，天生不走寻常路。若伤官配印，才华得以发挥；伤官驾杀，可成叱咤风云的人物。',
+        tips: '忌见正官混杂（伤官见官，为祸百端）。宜艺术、科技、写作、哲学、法律辩护等领域。'
+    },
+    '正财格': {
+        desc: '月令正财当权，勤劳务实，财源稳固。此格局者，踏实肯干，脚踏实地，凭自身努力积累财富，是最为稳健的财运格局。正财代表正当收入与稳定资产，一生财运平稳，中年后可见厚积薄发之势。',
+        tips: '喜官星流通（财生官），忌比劫分财。宜金融、贸易、地产、实业等稳健行业。'
+    },
+    '偏财格': {
+        desc: '月令偏财旺透，慷慨大方，善于经营。此格局者，商业头脑灵活，交际能力强，敢于冒险，财来财往，擅长在流通中获利。偏财亦主异性缘，人际关系广泛，常有贵人相助。',
+        tips: '忌比劫旺盛争财。宜贸易、销售、娱乐、投资、服务业等灵活行业。'
+    },
+    '正印格': {
+        desc: '月令正印护身，学识渊博，性情温厚。此格局者，贵人运强，受长辈照拂，善于学习积累，往往有文凭、资历加持，仕途学途皆顺。正印代表知识、母亲与庇护，一生有依靠、有保障，处事稳重不冒进。',
+        tips: '忌财星克印（财多破印）。宜学术、文化、医疗、教育、公职等积累型行业。'
+    },
+    '偏印格': {
+        desc: '月令偏印主智，思路独特，灵感丰富。此格局者，思维跳脱，喜欢钻研冷门学问，有神秘直觉，善于独立思考。偏印亦称枭神，若化用得当可成奇才；命局若食神受制，需注意情绪与健康管理。',
+        tips: '忌见食神被夺（枭神夺食）。宜哲学、玄学、研究、心理、宗教、技术性行业。'
+    },
+    '比肩格': {
+        desc: '月令比肩旺透，个性独立，自尊心强。此格局者，有主见，不依赖他人，骨子里有一股自强的劲头。比肩旺易竞争，需以泄秀（食伤）或官杀制约为用，方能将能量转化为成就而非内耗。',
+        tips: '喜官杀制比、食伤泄秀。宜自主创业、技术专精、独当一面的工作。'
+    },
+    '劫财格': {
+        desc: '月令劫财当令，行动力强，善于结交，但财帛易有波折。此格局者，社交能力强，热情主动，然需警惕财务被分耗，合伙易生纠纷。若得官杀制劫，或食伤引化，可将劫财的冲劲转化为奋发动力。',
+        tips: '忌财星遭劫，喜官杀制化。宜合伙需谨慎，宜专注技能或体力型事业。'
+    },
+};
+
+const TENGOD_MEANING = {
+    '正官': { color: '#6aacf8', bg: 'rgba(106,172,248,0.12)', desc: '纪律、责任、名誉、稳定收入' },
+    '七杀': { color: '#e05050', bg: 'rgba(224,80,80,0.12)',  desc: '魄力、竞争压力、挑战与突破' },
+    '正印': { color: '#a78bfa', bg: 'rgba(167,139,250,0.12)', desc: '贵人、智慧、学识、母亲庇护' },
+    '偏印': { color: '#c084fc', bg: 'rgba(192,132,252,0.12)', desc: '直觉、独特思维、神秘感' },
+    '食神': { color: '#4ade80', bg: 'rgba(74,222,128,0.12)',  desc: '才艺、享福、口才、自然财运' },
+    '伤官': { color: '#fb923c', bg: 'rgba(251,146,60,0.12)', desc: '才华、创意、突破规则、反叛' },
+    '正财': { color: '#facc15', bg: 'rgba(250,204,21,0.12)', desc: '稳定收入、务实、踏实积累' },
+    '偏财': { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', desc: '商机、异性缘、横财、外部资源' },
+    '比肩': { color: '#94a3b8', bg: 'rgba(148,163,184,0.12)', desc: '独立、自尊、竞争、同辈支持' },
+    '劫财': { color: '#64748b', bg: 'rgba(100,116,139,0.12)', desc: '行动力、社交、财务波动' },
+};
+
+// 月令旺衰表 (日主五行 × 月支, 值越高越旺)
+// 0=木1=火2=土3=金4=水, 月支0=子…11=亥
+const MONTH_STRENGTH = [
+//  子  丑  寅  卯  辰  巳  午  未  申  酉  戌  亥
+    [1,  0,  3,  3,  1,  0,  0,  0,  0,  0,  0,  2], // 木
+    [0,  0,  1,  1,  0,  3,  3,  1,  0,  0,  0,  0], // 火
+    [0,  2,  0,  0,  2,  1,  1,  2,  0,  0,  2,  0], // 土
+    [0,  1,  0,  0,  0,  0,  0,  0,  3,  3,  1,  0], // 金
+    [3,  1,  0,  0,  0,  0,  0,  0,  1,  0,  0,  2], // 水
+];
+
+function getDayStrengthLabel(dStem, mBranch) {
+    const de = STEM_E[dStem];
+    const s = MONTH_STRENGTH[de][mBranch];
+    if (s >= 3) return '旺';
+    if (s === 2) return '相';
+    if (s === 1) return '休';
+    return '囚弱';
+}
+
+function renderDetail(dP, mP, yP, hP, counts) {
+    const de = STEM_E[dP.stem];
+    const mGod = tenGod(dP.stem, mP.stem);
+    const strengthLabel = getDayStrengthLabel(dP.stem, mP.branch);
+    const isStrong = strengthLabel === '旺' || strengthLabel === '相';
+
+    // 格局
+    const gejvName = (mGod === '比肩' || mGod === '劫财') ? mGod + '格'
+        : mGod === '—' ? '杂气格' : mGod + '格';
+    const gejvInfo = GEJV_INFO[gejvName] || {
+        desc: '月令藏气复杂，命格兼蓄多种特质，需综合四柱方能论断，行大运时因势利导为上策。',
+        tips: '宜把握大运走向，顺势而为。'
+    };
+
+    // 收集命盘中出现的十神（去重）
+    const allGods = new Set();
+    for (const p of [yP, mP, hP]) {
+        const g = tenGod(dP.stem, p.stem);
+        if (g !== '—' && g !== '日主') allGods.add(g);
+        const bg = tenGod(dP.stem, BRANCH_HIDDEN[p.branch][0]);
+        if (bg !== '—' && bg !== '日主') allGods.add(bg);
+    }
+    const bgSelf = tenGod(dP.stem, BRANCH_HIDDEN[dP.branch][0]);
+    if (bgSelf !== '—' && bgSelf !== '日主') allGods.add(bgSelf);
+
+    // 五行喜忌
+    const gen  = [1,2,3,4,0];
+    const genBy= [4,0,1,2,3];
+    const ctl  = [2,3,4,0,1];
+    const ctlBy= [3,4,0,1,2];
+    const luckyE  = isStrong ? gen[de] : genBy[de];
+    const unluckyE= isStrong ? genBy[de] : gen[de];
+    const ELEM_DESC_EFFECT = [
+        ['有助学业思维、仁义心', '主创意才华流通', '主财富积累', '主权威地位', '主情感滋养庇护'],
+        ['有助热情感召力', '主才艺表达', '主财运旺盛', '主竞争压力', '主学识庇护'],
+        ['主稳健信用根基', '主口才才艺', '主财富积累', '主权威规范', '主贵人庇护'],
+        ['主果断执行力', '主才华表达', '主钱财流通', '主权威压力', '主支撑依靠'],
+        ['主智慧谋略', '主创意才艺', '主财富根基', '主竞争官杀', '主贵人护身'],
+    ];
+    const elemItems = [];
+    for (let i = 0; i < 5; i++) {
+        const c = counts[i];
+        let status = '';
+        if (c === 0) status = '缺失';
+        else if (c >= 3) status = '过旺';
+        else status = '均衡';
+        if (c === 0 || c >= 3) {
+            const isLucky = i === luckyE;
+            elemItems.push({ e: i, c, status, isLucky });
+        }
+    }
+
+    // 综合命评
+    const personalityNote = isStrong
+        ? `日主${strengthLabel}，自身能量充足，性格主动，需以泄秀（食伤）或官杀制衡，避免过刚易折。`
+        : `日主${strengthLabel}，需借助生扶之力，善用贵人资源，厚积方能薄发，切勿冒进。`;
+
+    const officialGod = allGods.has('正官') ? '正官入局，名分意识强，' : '';
+    const killGod = allGods.has('七杀') ? '七杀当道，闯劲十足，' : '';
+    const foodGod = allGods.has('食神') ? '食神流露，才气自然，' : '';
+    const injureGod = allGods.has('伤官') ? '伤官出现，才华锋芒，' : '';
+    const wealthGod = (allGods.has('正财') || allGods.has('偏财')) ? '财星入盘，财运可期，' : '';
+    const printGod = (allGods.has('正印') || allGods.has('偏印')) ? '印星护身，贵人相助，' : '';
+    const godSummary = (officialGod + killGod + foodGod + injureGod + wealthGod + printGod).replace(/，$/, '') || '命局平和，各方兼蓄';
+
+    const missingElem = counts.map((c,i)=>c===0?ELEMS[i]:'').filter(Boolean);
+    const missingNote = missingElem.length
+        ? `命盘五行缺<strong>${missingElem.join('、')}</strong>，人生中对应的领域（${missingElem.map(e=>{const i=ELEMS.indexOf(e);return ['仁义创造','热情感召','信用稳健','决断执行','智慧谋略'][i];}).join('、')}）需后天着意培养，可通过环境、颜色、职业加以弥补。`
+        : '命盘五行较为均衡，各方面基础扎实，人生阶段的顺逆更多取决于大运流向。';
+
+    // 渲染
+    let html = `
+    <div class="detail-block">
+        <div class="detail-tag">格局判定</div>
+        <div class="gejv-box">
+            <div class="gejv-name">${gejvName}</div>
+            <div class="gejv-desc">${gejvInfo.desc}<br><br><strong style="color:var(--gold)">用神建议：</strong>${gejvInfo.tips}</div>
+        </div>
+    </div>
+
+    <div class="detail-block">
+        <div class="detail-tag">命盘十神组合</div>
+        <div class="tengod-chips">`;
+
+    for (const god of allGods) {
+        const info = TENGOD_MEANING[god];
+        if (info) {
+            html += `<div class="tg-chip" style="color:${info.color};border-color:${info.color};background:${info.bg}">${god}</div>`;
+        }
+    }
+
+    html += `</div>
+        <div style="font-size:0.83rem;line-height:2;color:var(--text-dim);margin-top:6px;">`;
+
+    for (const god of allGods) {
+        const info = TENGOD_MEANING[god];
+        if (info) {
+            html += `<span style="color:${info.color}">${god}</span> → ${info.desc}　`;
+        }
+    }
+
+    html += `</div>
+    </div>
+
+    <div class="detail-block">
+        <div class="detail-tag">五行喜忌详解</div>`;
+
+    if (elemItems.length === 0) {
+        html += `<p class="sec-text">五行分布较为均衡，无明显偏枯，命局底盘稳健。喜用神为<strong>${ELEMS[luckyE]}</strong>，忌神为<strong>${ELEMS[unluckyE]}</strong>。</p>`;
+    } else {
+        html += `<div class="elem-analysis-grid">`;
+        for (const item of elemItems) {
+            const color = ELEM_COLOR[item.e];
+            const bg = ELEM_BG[item.e];
+            const title = item.status === '缺失' ? `缺 ${ELEMS[item.e]}` : `${ELEMS[item.e]} 过旺`;
+            const icon = item.status === '缺失' ? '▽' : '△';
+            const effect = item.status === '缺失'
+                ? `${ELEMS[item.e]}性特质薄弱，${ELEM_DESC_EFFECT[de][item.e]}方面先天略显不足，可借助方位、颜色与行业加以弥补。`
+                : `${ELEMS[item.e]}气过盛，相应特质容易走向极端，需以${ELEMS[ctl[item.e]]}加以克制调和。`;
+            html += `
+            <div class="elem-analysis-item" style="border-color:${color};background:${bg}">
+                <div style="color:${color};font-weight:700;margin-bottom:6px">${icon} ${title}</div>
+                <div style="color:var(--text-dim)">${effect}</div>
+            </div>`;
+        }
+        html += `</div>`;
+    }
+
+    html += `</div>
+
+    <div class="detail-block">
+        <div class="detail-tag">综合命评</div>
+        <div class="overall-box">
+            ${personalityNote}<br>
+            ${godSummary}，构成此命盘的核心气质。<br>
+            ${missingNote}<br>
+            <strong>喜用神</strong>为<strong>${ELEMS[luckyE]}</strong>，行大运遇${ELEMS[luckyE]}运时，诸事顺遂，宜把握；
+            遇<strong>${ELEMS[unluckyE]}</strong>运时宜守不宜攻，低调蓄力，静待时机。
+        </div>
+    </div>`;
+
+    document.getElementById('detailWrap').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════
 //  MAIN
 // ═══════════════════════════════════════════════
 function doCalc() {
@@ -978,6 +1288,7 @@ function doCalc() {
     renderWuXing(counts);
     renderTenGods(yP, mP, dP, hP);
     renderAnalysis(dP, counts, yP, mP, hP);
+    renderDetail(dP, mP, yP, hP, counts);
     renderDayun(new Date(y, m-1, d), yP, mP, gender);
 
     const res = document.getElementById('results');
